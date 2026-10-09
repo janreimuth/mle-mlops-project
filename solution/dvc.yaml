@@ -1,0 +1,20 @@
+stages:
+  prepare_data:
+    cmd: uv run python src/prepare_data.py
+    deps:
+      - src/prepare_data.py
+      - ../uv.lock
+    outs:
+      - data/raw/iris.csv
+
+  train_model:
+    cmd: uv run python src/train.py
+    deps:
+      - src/train.py
+      - data/raw/iris.csv
+      - ../uv.lock
+    outs:
+      - models/model.joblib
+      - models/model_metadata.json
+    metrics:
+      - reports/train_metrics.json

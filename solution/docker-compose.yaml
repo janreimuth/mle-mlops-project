@@ -1,0 +1,32 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: solution/Dockerfile
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Share artifacts and request logs without hiding the container's environment.
+      - ./models:/app/models:ro
+      - ./monitoring:/app/monitoring
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    depends_on:
+      - prometheus
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro

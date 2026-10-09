@@ -1,0 +1,5 @@
+/mlartifacts/
+/mlflow.db
+/monitoring/reports/
+/monitoring/requests.csv
+.DS_Store

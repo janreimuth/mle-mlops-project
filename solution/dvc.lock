@@ -1,0 +1,46 @@
+schema: '2.0'
+stages:
+  prepare_data:
+    cmd: uv run python src/prepare_data.py
+    deps:
+    - path: ../uv.lock
+      hash: md5
+      md5: eb2b9e1a29411888d4018fa8220980e9
+      size: 821512
+    - path: src/prepare_data.py
+      hash: md5
+      md5: ba3eae89d1c9e2c641c16e7ec6dab949
+      size: 1268
+    outs:
+    - path: data/raw/iris.csv
+      hash: md5
+      md5: 861be42c6bcf2ca481b4bc4d1d4d048c
+      size: 4184
+  train_model:
+    cmd: uv run python src/train.py
+    deps:
+    - path: ../uv.lock
+      hash: md5
+      md5: eb2b9e1a29411888d4018fa8220980e9
+      size: 821512
+    - path: data/raw/iris.csv
+      hash: md5
+      md5: 861be42c6bcf2ca481b4bc4d1d4d048c
+      size: 4184
+    - path: src/train.py
+      hash: md5
+      md5: abb8bcf83dddba904e39e3f913d2cf4f
+      size: 4109
+    outs:
+    - path: models/model.joblib
+      hash: md5
+      md5: 4dd67175036aa9809fcc59f64c843cd7
+      size: 2785
+    - path: models/model_metadata.json
+      hash: md5
+      md5: b3edb248c5c99e7581ad05e78a4bd2c7
+      size: 226
+    - path: reports/train_metrics.json
+      hash: md5
+      md5: 91113da739a2dea887e127dee4da7fb8
+      size: 103

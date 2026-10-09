@@ -1,0 +1,46 @@
+name: Reference Solution
+
+on:
+  push:
+    paths:
+      - ".github/workflows/reference-solution.yaml"
+      - ".python-version"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "solution/**"
+  pull_request:
+    paths:
+      - ".github/workflows/reference-solution.yaml"
+      - ".python-version"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "solution/**"
+
+jobs:
+  validate-reference-solution:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.11.19"
+
+      - name: Install project dependencies
+        run: uv sync --locked
+
+      - name: Reproduce the DVC pipeline
+        working-directory: solution
+        run: uv run dvc repro
+
+      - name: Smoke test the API endpoints
+        working-directory: solution
+        run: uv run python -m src.check_api
