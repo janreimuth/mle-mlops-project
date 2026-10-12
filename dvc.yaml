@@ -1,0 +1,30 @@
+stages:
+  download:
+    cmd: python src/download.py
+    outs:
+      - data/raw/green_tripdata_2024-01.parquet
+
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+      - src/preprocess.py
+      - data/raw/green_tripdata_2024-01.parquet
+    outs:
+      - data/processed/train.parquet
+      - data/processed/test.parquet
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/processed/train.parquet
+      - data/processed/test.parquet
+    params:
+      - year
+      - month
+      - color
+    outs:
+      - models/pipeline.bin
+    metrics:
+      - metrics.json:
+          cache: false
