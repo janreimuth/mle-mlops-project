@@ -18,7 +18,9 @@ from sklearn.pipeline import make_pipeline
 # Reduce utility log noise without hiding warnings about model packaging.
 logging.getLogger("mlflow.utils").setLevel(logging.WARNING)
 
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
+import os
+
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
 mlflow.set_experiment("green-taxi-duration")
 
 def downloadData(year=2024, month=1, color ="green"):
