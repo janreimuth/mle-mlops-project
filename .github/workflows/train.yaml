@@ -3,7 +3,36 @@ name: Train taxi model
 on:
   push:
     branches: [main]
+    push:
+    paths:
+      - ".github/workflows/reference-solution.yaml"
+      - ".python-version"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
+      - "monitoring/**"
+      - "mlflow.db"
+      - "mlartifacts/**"
+      - "mlruns/**"
+      - "predictions.json"
+      - "metrics.txt"
+      - "prometheus_up.json"
+      - "api.log"
   pull_request:
+    paths:
+      - ".github/workflows/reference-solution.yaml"
+      - ".python-version"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
+      - "monitoring/**"
+      - "mlflow.db"
+      - "mlartifacts/**"
+      - "mlruns/**"
+      - "predictions.json"
+      - "metrics.txt"
+      - "prometheus_up.json"
+      - "api.log"
   workflow_dispatch:   # adds a "Run workflow" button in the Actions tab
 
 jobs:
@@ -37,3 +66,49 @@ jobs:
             mlartifacts/
             mlruns/
           if-no-files-found: warn
+      - name: Start API in background
+        run: |
+          uv run uvicorn src.api.main:app --port 8001 > api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8001/health && exit 0
+            sleep 2
+          done
+          echo "API did not start"; cat api.log; exit 1
+
+      - name: Start Prometheus and Grafana
+        run: |
+          docker run -d --name prometheus --network host \
+            -v "$PWD/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml" \
+            prom/prometheus:v3.4.0
+          docker run -d --name grafana --network host \
+            -v "$PWD/monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml" \
+            grafana/grafana:12.0.0
+
+      - name: Send example predictions
+        run: |
+          for i in $(seq 1 5); do
+            curl -sf -X POST http://127.0.0.1:8001/predict \
+              -H "Content-Type: application/json" \
+              -d '{"PULocationID": 74, "DOLocationID": 75, "trip_distance": 1.8}' \
+              | tee -a predictions.json
+            echo >> predictions.json
+          done
+
+      - name: Verify monitoring
+        run: |
+          # Metrics endpoint exposes request counts
+          curl -sf http://127.0.0.1:8001/metrics > metrics.txt
+          grep -q 'http_requests_total' metrics.txt
+
+          # Prometheus is scraping the API (up == 1)
+          sleep 15
+          curl -s 'http://127.0.0.1:9090/api/v1/query?query=up{job="taxi-api"}' \
+            | tee prometheus_up.json \
+            | jq -e '.data.result[0].value[1] == "1"'
+
+          # Grafana is healthy
+          for i in $(seq 1 15); do
+            curl -sf http://127.0.0.1:3000/api/health && exit 0
+            sleep 2
+          done
+          echo "Grafana did not start"; exit 1
